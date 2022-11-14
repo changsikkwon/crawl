@@ -18,7 +18,7 @@ show.pack()
 
 artists = requests.get("https://api.artpickhaso.co.kr/v1/artist/").json()
 
-listbox = tk.Listbox(frm, width=100, height=10, selectmode="multiple")
+listbox = tk.Listbox(frm, width=100, height=10, selectmode=tk.EXTENDED)
 listbox.pack(padx=10, pady=10, expand=tk.YES, fill="both")
 
 for i in artists:

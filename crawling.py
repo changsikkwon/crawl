@@ -34,12 +34,7 @@ class Crawler:
         # mac의 경우 brew를 사용해서 chromedriver 설치 후
         # 해당 경로에서 아래 명령어 실행
         # xattr -d com.apple.quarantine chromedriver
-        options = webdriver.ChromeOptions()
-        user_agent = random.choice(USER_AGENT)
-        options.add_argument('user-agent=' + user_agent)
-        options.add_argument("--proxy-server=socks5://127.0.0.1:9150")
-
-        # self.driver = webdriver.Chrome(executable_path='./chromedriver', options=options)
+        # self.driver = webdriver.Chrome(executable_path='./chromedriver')
         self.driver = webdriver.Chrome(executable_path='./chromedriver.exe')
 
         # 윈도우는 아래 코드 실행
@@ -76,12 +71,13 @@ class Crawler:
         page_source = self.driver.page_source
         soup = BeautifulSoup(page_source, 'html.parser')
         result = []
-        for element in soup.select('main header section li'):
+        span_list = soup.select('main header section li span')
+        for idx, element in enumerate(soup.select('main header section li')):
             value = element.get_text().split(' ')[1].replace(',', '')
             if "K" in value:
-                result.append(float(value.replace('K', '')) * 1000)
+                result.append(int(span_list[idx].get('title').replace(',', '')))
             elif "M" in value:
-                result.append(float(value.replace('M', '')) * 1000000)
+                result.append(int(span_list[idx].get('title').replace(',', '')))
             else:
                 result.append(int(value))
         print(f"result : {result}")
