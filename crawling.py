@@ -1,3 +1,5 @@
+import re
+
 import requests
 import time
 import math
@@ -7,6 +9,10 @@ import random
 from bs4 import BeautifulSoup
 
 from selenium import webdriver
+from selenium.webdriver.chrome.service import Service as ChromeService
+from selenium.webdriver.common.by import By
+
+from webdriver_manager.chrome import ChromeDriverManager
 
 
 USER_AGENT = [
@@ -29,16 +35,17 @@ class Crawler:
         pass
 
     def login(self):
-        URL = 'https://instagram.com/'
+        URL = "https://instagram.com/"
 
         # mac의 경우 brew를 사용해서 chromedriver 설치 후
         # 해당 경로에서 아래 명령어 실행
         # xattr -d com.apple.quarantine chromedriver
         # self.driver = webdriver.Chrome(executable_path='./chromedriver')
-        self.driver = webdriver.Chrome(executable_path='./chromedriver.exe')
+        # self.driver = webdriver.Chrome(executable_path='./chromedriver.exe')
+        # self.driver = webdriver.Chrome(service=ChromeService(ChromeDriverManager().install()))
 
         # 윈도우는 아래 코드 실행
-        # self.driver = webdriver.Chrome(executable_path='./chromedriver.exe')
+        self.driver = webdriver.Chrome(executable_path="./chromedriver.exe")
         self.driver.implicitly_wait(3)
         self.driver.get(URL)
 
@@ -51,7 +58,7 @@ class Crawler:
         # post_list = self.get_post_like(data["postCount"])
         now = datetime.datetime.now()
 
-        print("수집완료 : Submit API 호출")
+        # print("수집완료 : Submit API 호출")
         # https://api.artpickhaso.co.kr/v1/artist/instagram_data/submit/
         requests.post(
             "https://api.artpickhaso.co.kr/v1/artist/instagram_data/submit/",
@@ -63,23 +70,21 @@ class Crawler:
                 "likeCount": 0,
                 # "postCount": post_list["postCount"],
                 # "likeCount": post_list["likeCount"],
-            }
+            },
         )
 
     # 게시물, 팔로워 데이터 가져오기
     def get_data(self):
-        page_source = self.driver.page_source
-        soup = BeautifulSoup(page_source, 'html.parser')
-        result = []
-        span_list = soup.select('main header section li span')
-        for idx, element in enumerate(soup.select('main header section li')):
-            value = element.get_text().split(' ')[1].replace(',', '')
-            if "K" in value:
-                result.append(int(span_list[idx].get('title').replace(',', '')))
-            elif "M" in value:
-                result.append(int(span_list[idx].get('title').replace(',', '')))
-            else:
-                result.append(int(value))
+        result = [
+            int(element.get_attribute("title").replace(",", ""))
+            if element.get_attribute("title")
+            else int(element.text.replace(",", ""))
+            for element in self.driver.find_elements(
+                by=By.CLASS_NAME,
+                value="_ac2a",
+            )
+        ]
+
         print(f"result : {result}")
         return {
             "postCount": result[0],
@@ -89,15 +94,15 @@ class Crawler:
     # 게시글 좋아요 가져오기
     def get_post_like(self, count):
         # 12개씩 불러옴
-        for i in range(math.ceil(count/12) + 1):
+        for i in range(math.ceil(count / 12) + 1):
             self.driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
             time.sleep(0.2)
 
         time.sleep(0.5)
         page_source = self.driver.page_source
-        soup = BeautifulSoup(page_source, 'html.parser')
+        soup = BeautifulSoup(page_source, "html.parser")
 
-        posts = soup.select('article a')
+        posts = soup.select("article a")
         # 좋아요 크롤링 로직
         post_like_count = 0
         for element in posts:
@@ -108,22 +113,20 @@ class Crawler:
             time.sleep(random.random() + random.randrange(4, 10))
             like_value = self.get_like()
             post_like_count += like_value
-        return {
-            "postCount": len(posts),
-            "likeCount": post_like_count
-        }
+        return {"postCount": len(posts), "likeCount": post_like_count}
 
     def get_like(self):
         while True:
             source = self.driver.page_source
-            soup = BeautifulSoup(source, 'html.parser')
-            like = soup.select('article div section a')
+            soup = BeautifulSoup(source, "html.parser")
+            like = soup.select("article div section a")
             if len(like) > 0:
-                value = int(like[0].get_text().split(' ')[1].rstrip("개"))
+                value = int(like[0].get_text().split(" ")[1].rstrip("개"))
                 return value
             else:
                 print("크롤링 실패! 재시도..")
                 time.sleep(0.5)
+
 
 # eigheivheoshci
 # rlarjsgh6230

@@ -3,6 +3,7 @@ from tkinter import ttk
 from crawling import Crawler
 import requests
 
+
 crawler = Crawler()
 window = tk.Tk()
 window.title("아트픽하소")
