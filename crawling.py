@@ -1,5 +1,3 @@
-import re
-
 import requests
 import time
 import math
@@ -12,9 +10,10 @@ from selenium import webdriver
 from selenium.webdriver import Keys
 from selenium.webdriver.chrome.service import Service as ChromeService
 from selenium.webdriver.common.by import By
+from selenium.webdriver.support.select import Select
 
 from webdriver_manager.chrome import ChromeDriverManager
-
+from webdriver_manager.core.utils import ChromeType
 
 USER_AGENT = [
     "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/106.0.0.0 Safari/537.36",
@@ -43,13 +42,19 @@ class Crawler:
         # xattr -d com.apple.quarantine chromedriver
         # self.driver = webdriver.Chrome(executable_path='./chromedriver')
         # self.driver = webdriver.Chrome(executable_path='./chromedriver.exe')
-        self.driver = webdriver.Chrome(service=ChromeService(ChromeDriverManager().install()))
+        self.driver = webdriver.Chrome(service=ChromeService(ChromeDriverManager(version="108.0.5359.94").install()))
 
         # 윈도우는 아래 코드 실행
         # self.driver = webdriver.Chrome(executable_path="./chromedriver.exe")
         self.driver.implicitly_wait(3)
         self.driver.get(URL)
         self.driver.implicitly_wait(10)
+
+        select = Select(self.driver.find_element(By.CLASS_NAME, "_aajm"))
+        select.select_by_value("en")
+
+        self.driver.implicitly_wait(10)
+
         self.driver.find_element(By.NAME, "username").send_keys(username)
         self.driver.find_element(By.NAME, "password").send_keys(password)
         self.driver.find_element(By.NAME, "password").send_keys(Keys.ENTER)
@@ -80,28 +85,15 @@ class Crawler:
 
     # 게시물, 팔로워 데이터 가져오기
     def get_data(self):
-        result = []
-        for element in self.driver.find_elements(by=By.CLASS_NAME, value="_ac2a"):
-            if element.get_attribute("title"):
-                if "만" in element.get_attribute("title"):
-                    num = int(float(element.get_attribute("title").replace("만", "")) * 10000)
-                else:
-                    num = int(element.get_attribute("title").replace(",", ""))
-                result.append(num)
-            elif "만" in element.text:
-                result.append(int(float(element.text.replace("만", "")) * 10000))
-            else:
-                result.append(int(element.text.replace(",", "")))
-
-        # result = [
-        #     int(element.get_attribute("title").replace(",", ""))
-        #     if element.get_attribute("title")
-        #     else int(element.text.replace(",", ""))
-        #     for element in self.driver.find_elements(
-        #         by=By.CLASS_NAME,
-        #         value="_ac2a",
-        #     )
-        # ]
+        result = [
+            int(element.get_attribute("title").replace(",", ""))
+            if element.get_attribute("title")
+            else int(element.text.replace(",", ""))
+            for element in self.driver.find_elements(
+                by=By.CLASS_NAME,
+                value="_ac2a",
+            )
+        ]
 
         print(f"result : {result}")
         return {
