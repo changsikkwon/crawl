@@ -9,6 +9,7 @@ import random
 from bs4 import BeautifulSoup
 
 from selenium import webdriver
+from selenium.webdriver import Keys
 from selenium.webdriver.chrome.service import Service as ChromeService
 from selenium.webdriver.common.by import By
 
@@ -34,7 +35,7 @@ class Crawler:
     def close(self):
         pass
 
-    def login(self):
+    def login(self, username, password):
         URL = "https://instagram.com/"
 
         # mac의 경우 brew를 사용해서 chromedriver 설치 후
@@ -42,12 +43,16 @@ class Crawler:
         # xattr -d com.apple.quarantine chromedriver
         # self.driver = webdriver.Chrome(executable_path='./chromedriver')
         # self.driver = webdriver.Chrome(executable_path='./chromedriver.exe')
-        # self.driver = webdriver.Chrome(service=ChromeService(ChromeDriverManager().install()))
+        self.driver = webdriver.Chrome(service=ChromeService(ChromeDriverManager().install()))
 
         # 윈도우는 아래 코드 실행
-        self.driver = webdriver.Chrome(executable_path="./chromedriver.exe")
+        # self.driver = webdriver.Chrome(executable_path="./chromedriver.exe")
         self.driver.implicitly_wait(3)
         self.driver.get(URL)
+        self.driver.implicitly_wait(10)
+        self.driver.find_element(By.NAME, "username").send_keys(username)
+        self.driver.find_element(By.NAME, "password").send_keys(password)
+        self.driver.find_element(By.NAME, "password").send_keys(Keys.ENTER)
 
     def start(self, instagram_id, artist_id):
         insta_profile_url = f"https://www.instagram.com/{instagram_id}"
@@ -75,15 +80,28 @@ class Crawler:
 
     # 게시물, 팔로워 데이터 가져오기
     def get_data(self):
-        result = [
-            int(element.get_attribute("title").replace(",", ""))
-            if element.get_attribute("title")
-            else int(element.text.replace(",", ""))
-            for element in self.driver.find_elements(
-                by=By.CLASS_NAME,
-                value="_ac2a",
-            )
-        ]
+        result = []
+        for element in self.driver.find_elements(by=By.CLASS_NAME, value="_ac2a"):
+            if element.get_attribute("title"):
+                if "만" in element.get_attribute("title"):
+                    num = int(float(element.get_attribute("title").replace("만", "")) * 10000)
+                else:
+                    num = int(element.get_attribute("title").replace(",", ""))
+                result.append(num)
+            elif "만" in element.text:
+                result.append(int(float(element.text.replace("만", "")) * 10000))
+            else:
+                result.append(int(element.text.replace(",", "")))
+
+        # result = [
+        #     int(element.get_attribute("title").replace(",", ""))
+        #     if element.get_attribute("title")
+        #     else int(element.text.replace(",", ""))
+        #     for element in self.driver.find_elements(
+        #         by=By.CLASS_NAME,
+        #         value="_ac2a",
+        #     )
+        # ]
 
         print(f"result : {result}")
         return {

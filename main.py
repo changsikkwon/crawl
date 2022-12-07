@@ -7,7 +7,7 @@ import requests
 crawler = Crawler()
 window = tk.Tk()
 window.title("아트픽하소")
-window.geometry("640x400")
+window.geometry("640x450")
 window.resizable(False, False)
 
 
@@ -27,7 +27,7 @@ for i in artists:
 
 
 def login():
-    crawler.login()
+    crawler.login(username.get(), password.get())
 
 
 def select_all():
@@ -56,12 +56,21 @@ def start_crawling():
 
 # widget.pack()
 select_all_btn = ttk.Button(frm, text="전체 선택", width=20, command=select_all)
-select_all_btn.pack()
-login_btn = ttk.Button(frm, text="인스타 로그인", width=20, command=login)
-login_btn.pack()
 start_crawling_btn = ttk.Button(frm, text="크롤링 실행", width=20, command=start_crawling)
-start_crawling_btn.pack()
+username, password = tk.StringVar(), tk.StringVar()
+user_text = ttk.Label(frm, text="인스타 아이디")
+user_input = ttk.Entry(frm, textvariable=username)
+password_text = ttk.Label(frm, text="비밀번호")
+password_input = ttk.Entry(frm, textvariable=password, show="*")
+login_btn = ttk.Button(frm, text="인스타 로그인", width=20, command=login)
 
+select_all_btn.pack()
+start_crawling_btn.pack()
+user_text.pack()
+user_input.pack()
+password_text.pack()
+password_input.pack()
+login_btn.pack()
 
 window.mainloop()
 
