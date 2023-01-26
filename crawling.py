@@ -42,7 +42,7 @@ class Crawler:
         # xattr -d com.apple.quarantine chromedriver
         # self.driver = webdriver.Chrome(executable_path='./chromedriver')
         # self.driver = webdriver.Chrome(executable_path='./chromedriver.exe')
-        self.driver = webdriver.Chrome(service=ChromeService(ChromeDriverManager(version="108.0.5359.94").install()))
+        self.driver = webdriver.Chrome(service=ChromeService(ChromeDriverManager().install()))
 
         # 윈도우는 아래 코드 실행
         # self.driver = webdriver.Chrome(executable_path="./chromedriver.exe")
