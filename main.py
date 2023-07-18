@@ -1,13 +1,14 @@
 import tkinter as tk
 from tkinter import ttk
-from crawling import Crawler
+
 import requests
 
+from crawling import Crawler
 
 crawler = Crawler()
 window = tk.Tk()
 window.title("아트픽하소")
-window.geometry("640x450")
+window.geometry("640x350")
 window.resizable(False, False)
 
 
@@ -27,7 +28,7 @@ for i in artists:
 
 
 def login():
-    crawler.login(username.get(), password.get())
+    crawler.login()
 
 
 def select_all():
@@ -49,7 +50,6 @@ def start_crawling():
         print(f"instagram_id : {instagram_id}")
         try:
             crawler.start(instagram_id, artist_id)
-            # lable1.pack_forget()
         except:
             pass
 
@@ -62,17 +62,10 @@ user_text = ttk.Label(frm, text="인스타 아이디")
 user_input = ttk.Entry(frm, textvariable=username)
 password_text = ttk.Label(frm, text="비밀번호")
 password_input = ttk.Entry(frm, textvariable=password, show="*")
-login_btn = ttk.Button(frm, text="인스타 로그인", width=20, command=login)
+login_btn = ttk.Button(frm, text="인스타 실행", width=20, command=login)
 
 select_all_btn.pack()
 start_crawling_btn.pack()
-user_text.pack()
-user_input.pack()
-password_text.pack()
-password_input.pack()
 login_btn.pack()
 
 window.mainloop()
-
-
-# https://api.artpickhaso.co.kr/v1/artist/

@@ -1,19 +1,14 @@
-import requests
-import time
-import math
 import datetime
+import math
 import random
+import time
 
+import requests
 from bs4 import BeautifulSoup
-
 from selenium import webdriver
-from selenium.webdriver import Keys
 from selenium.webdriver.chrome.service import Service as ChromeService
 from selenium.webdriver.common.by import By
-from selenium.webdriver.support.select import Select
-
 from webdriver_manager.chrome import ChromeDriverManager
-from webdriver_manager.core.utils import ChromeType
 
 USER_AGENT = [
     "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/106.0.0.0 Safari/537.36",
@@ -34,36 +29,23 @@ class Crawler:
     def close(self):
         pass
 
-    def login(self, username, password):
+    def login(self):
         URL = "https://instagram.com/"
 
-        # mac의 경우 brew를 사용해서 chromedriver 설치 후
-        # 해당 경로에서 아래 명령어 실행
-        # xattr -d com.apple.quarantine chromedriver
-        # self.driver = webdriver.Chrome(executable_path='./chromedriver')
-        # self.driver = webdriver.Chrome(executable_path='./chromedriver.exe')
         self.driver = webdriver.Chrome(service=ChromeService(ChromeDriverManager().install()))
 
-        # 윈도우는 아래 코드 실행
-        # self.driver = webdriver.Chrome(executable_path="./chromedriver.exe")
         self.driver.implicitly_wait(3)
         self.driver.get(URL)
         self.driver.implicitly_wait(10)
 
-        select = Select(self.driver.find_element(By.CLASS_NAME, "_aajm"))
-        select.select_by_value("en")
-
         self.driver.implicitly_wait(10)
-
-        self.driver.find_element(By.NAME, "username").send_keys(username)
-        self.driver.find_element(By.NAME, "password").send_keys(password)
-        self.driver.find_element(By.NAME, "password").send_keys(Keys.ENTER)
 
     def start(self, instagram_id, artist_id):
         insta_profile_url = f"https://www.instagram.com/{instagram_id}"
         self.driver.get(insta_profile_url)
-        time.sleep(3)
+        self.driver.implicitly_wait(30)
         data = self.get_data()
+        self.driver.implicitly_wait(30)
         # 좋아요 크롤링 함수
         # post_list = self.get_post_like(data["postCount"])
         now = datetime.datetime.now()
@@ -82,18 +64,25 @@ class Crawler:
                 # "likeCount": post_list["likeCount"],
             },
         )
+        self.driver.implicitly_wait(30)
 
     # 게시물, 팔로워 데이터 가져오기
     def get_data(self):
-        result = [
-            int(element.get_attribute("title").replace(",", ""))
-            if element.get_attribute("title")
-            else int(element.text.replace(",", ""))
-            for element in self.driver.find_elements(
-                by=By.CLASS_NAME,
-                value="_ac2a",
-            )
-        ]
+        result = []
+        for i in self.driver.find_elements(by=By.CLASS_NAME, value="_ac2a"):
+            text = i.text.replace(",", "")
+            if "백만" in i.text:
+                text = int(i.text.replace("백만", "")) * 1000000
+            elif "십만" in i.text:
+                text = int(i.text.replace("십만", "")) * 100000
+            elif "만" in i.text:
+                text = int(i.text.replace("만", "")) * 10000
+            elif "K" in i.text:
+                text = int(i.text.replace("K", "")) * 1000
+            elif "M" in i.text:
+                text = int(i.text.replace("M", "")) * 1000000
+
+            result.append(int(text))
 
         print(f"result : {result}")
         return {
@@ -136,7 +125,3 @@ class Crawler:
             else:
                 print("크롤링 실패! 재시도..")
                 time.sleep(0.5)
-
-
-# eigheivheoshci
-# rlarjsgh6230
