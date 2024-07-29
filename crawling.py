@@ -204,6 +204,8 @@ for i in range(1, 1000000):
     except NoSuchElementException as e:
         print("fail : ", e)
         break
+    except KeyboardInterrupt:
+        break
 
 driver.quit()
 
@@ -215,11 +217,11 @@ for sheet in wb.sheetnames:
 
 
 ws = wb.create_sheet(title="아임웹 전문가")
-ws.row_dimensions[1].height = 20
+ws.row_dimensions[1].height = 10
 ws.column_dimensions["A"].width = 15
 ws.column_dimensions["B"].width = 30
 ws.column_dimensions["C"].width = 40
-ws.column_dimensions["D"].width = 30
+ws.column_dimensions["D"].width = 20
 ws.column_dimensions["E"].width = 100
 
 ws["A1"] = "No"
