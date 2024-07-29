@@ -1,127 +1,247 @@
-import datetime
-import math
-import random
 import time
 
-import requests
-from bs4 import BeautifulSoup
+from openpyxl.workbook import Workbook
 from selenium import webdriver
-from selenium.webdriver.chrome.service import Service as ChromeService
+from selenium.common.exceptions import (
+    NoSuchElementException,
+    ElementClickInterceptedException,
+    StaleElementReferenceException,
+)
+from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.common.by import By
-from webdriver_manager.chrome import ChromeDriverManager
+from selenium.webdriver.support import expected_conditions as EC
+from selenium.webdriver.support.ui import WebDriverWait
 
-USER_AGENT = [
-    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/106.0.0.0 Safari/537.36",
-    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/105.0.0.0 Safari/537.36",
-    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/105.0.0.0 Safari/537.36",
-    "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/106.0.0.0 Safari/537.36",
-    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.0 Safari/605.1.15",
-    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/107.0.0.0 Safari/537.36",
-    "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/105.0.0.0 Safari/537.36",
-    "Mozilla/5.0 (X11; Linux x86_64; rv:103.0) Gecko/20100101 Firefox/103.0",
-]
+chrome_options = Options()
+# chrome_options.add_argument("--headless")  # 헤드리스 모드로 실행
+# chrome_options.add_argument("--disable-gpu")  # GPU 사용 안함
+chrome_options.add_argument("--no-sandbox")  # 샌드박스 사용 안함
+# chrome_options.add_argument("--disable-dev-shm-usage")  # /dev/shm 사용 안함
+chrome_options.add_argument("--enable-precise-memory-info")
+chrome_options.add_argument("--disable-popup-blocking")
+chrome_options.add_argument("--disable-default-apps")
+chrome_options.add_argument("--start-maximized")
+chrome_options.add_argument("--disable-extensions")
+chrome_options.add_argument("--disable-infobars")
+chrome_options.add_argument("--disable-notifications")
+chrome_options.add_argument("--lang=ko")  # 브라우저 언어 설정을 한국어로 변경
+chrome_options.page_load_strategy = "eager"  # 페이지 로딩 최적화
+# 불필요한 리소스 로딩 차단
+prefs = {
+    "profile.managed_default_content_settings": {
+        "images": 2,  # 이미지 로딩 차단
+    }
+}
+chrome_options.add_experimental_option("prefs", prefs)
 
+driver = webdriver.Chrome("./chromedriver", options=chrome_options)
+driver.set_script_timeout(300)
+wait = WebDriverWait(driver, 300)
 
-class Crawler:
-    def __init__(self):
-        self.driver = None
+driver.get("https://imweb.me/login")
+driver.implicitly_wait(1)
 
-    def close(self):
-        pass
+id_input = driver.find_element(By.XPATH, '//*[@id="io-email-field-input-2"]')
+driver.implicitly_wait(1)
+id_input.send_keys("kcs15985@naver.com")
+driver.implicitly_wait(1)
 
-    def login(self):
-        URL = "https://instagram.com/"
+pw_input = driver.find_element(By.XPATH, '//*[@id="io-password-field-input-3"]')
+driver.implicitly_wait(1)
+pw_input.send_keys("Dnl1vhr2@")
+driver.implicitly_wait(1)
 
-        self.driver = webdriver.Chrome(service=ChromeService(ChromeDriverManager().install()))
+login_btn = driver.find_element(
+    By.XPATH, '//*[@id="snowfall"]/main/io-login-form/io-login-form-container/form/fieldset/io-button/button'
+)
+driver.implicitly_wait(1)
+login_btn.click()
+driver.implicitly_wait(1)
 
-        self.driver.implicitly_wait(3)
-        self.driver.get(URL)
-        self.driver.implicitly_wait(10)
+driver.get("https://imweb.me/expert")
+driver.implicitly_wait(1)
+select_btn = wait.until(
+    EC.element_to_be_clickable((By.XPATH, '//*[@id="__next"]/div/main/nav/nav/ul/div/div[2]/div/button'))
+)
+select_btn.click()
+like_btn = wait.until(EC.element_to_be_clickable((By.XPATH, "/html/body/div[5]/ul/li[3]/button")))
+like_btn.click()
 
-        self.driver.implicitly_wait(10)
+driver.execute_script(f"window.scrollBy(0, 100);")
+driver.implicitly_wait(1)
+print("login")
 
-    def start(self, instagram_id, artist_id):
-        insta_profile_url = f"https://www.instagram.com/{instagram_id}"
-        self.driver.get(insta_profile_url)
-        self.driver.implicitly_wait(30)
-        data = self.get_data()
-        self.driver.implicitly_wait(30)
-        # 좋아요 크롤링 함수
-        # post_list = self.get_post_like(data["postCount"])
-        now = datetime.datetime.now()
+company_datas = []
 
-        # print("수집완료 : Submit API 호출")
-        # https://api.artpickhaso.co.kr/v1/artist/instagram_data/submit/
-        requests.post(
-            "https://api.artpickhaso.co.kr/v1/artist/instagram_data/submit/",
-            data={
-                "artist": artist_id,
-                "targetDate": now.strftime("%Y-%m-%d"),
-                "followerCount": data["followerCount"],
-                "postCount": data["postCount"],
-                "likeCount": 0,
-                # "postCount": post_list["postCount"],
-                # "likeCount": post_list["likeCount"],
-            },
-        )
-        self.driver.implicitly_wait(30)
-
-    # 게시물, 팔로워 데이터 가져오기
-    def get_data(self):
-        result = []
-        for i in self.driver.find_elements(by=By.CLASS_NAME, value="_ac2a"):
-            text = i.text.replace(",", "")
-            if "백만" in i.text:
-                text = int(i.text.replace("백만", "")) * 1000000
-            elif "십만" in i.text:
-                text = int(i.text.replace("십만", "")) * 100000
-            elif "만" in i.text:
-                text = int(i.text.replace("만", "")) * 10000
-            elif "K" in i.text:
-                text = int(i.text.replace("K", "")) * 1000
-            elif "M" in i.text:
-                text = int(i.text.replace("M", "")) * 1000000
-
-            result.append(int(text))
-
-        print(f"result : {result}")
-        return {
-            "postCount": result[0],
-            "followerCount": result[1],
+for i in range(1, 1000000):
+    print(i)
+    try:
+        data = {
+            "company_name": None,
+            "email": None,
+            "phone": None,
         }
 
-    # 게시글 좋아요 가져오기
-    def get_post_like(self, count):
-        # 12개씩 불러옴
-        for i in range(math.ceil(count / 12) + 1):
-            self.driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
-            time.sleep(0.2)
+        try:
+            content = wait.until(
+                EC.element_to_be_clickable((By.XPATH, f'//*[@id="__next"]/div/main/div[3]/div/div/section[{i}]/div'))
+            )
+            driver.execute_script("arguments[0].scrollIntoView(true);", content)
+            driver.execute_script("window.scrollBy(0, -60);")
 
-        time.sleep(0.5)
-        page_source = self.driver.page_source
-        soup = BeautifulSoup(page_source, "html.parser")
+            company_name = driver.find_element(
+                By.XPATH, f'//*[@id="__next"]/div/main/div[3]/div/div/section[{i}]/label/div[1]/a/p'
+            )
 
-        posts = soup.select("article a")
-        # 좋아요 크롤링 로직
-        post_like_count = 0
-        for element in posts:
-            link = f"https://www.instagram.com{element['href']}"
-            self.driver.get(link)
-            time.sleep(random.random() + 1)
-            self.driver.execute_script(f"window.scrollTo(0, {random.randrange(200, 400)});")
-            time.sleep(random.random() + random.randrange(4, 10))
-            like_value = self.get_like()
-            post_like_count += like_value
-        return {"postCount": len(posts), "likeCount": post_like_count}
+            company_exists = False
+            for company in company_datas:
+                if company["company_name"] == company_name.text:
+                    company_exists = True
+                    break
 
-    def get_like(self):
-        while True:
-            source = self.driver.page_source
-            soup = BeautifulSoup(source, "html.parser")
-            like = soup.select("article div section a")
-            if len(like) > 0:
-                value = int(like[0].get_text().split(" ")[1].rstrip("개"))
-                return value
-            else:
-                print("크롤링 실패! 재시도..")
-                time.sleep(0.5)
+            if company_exists:
+                continue
+
+            data["company_name"] = company_name.text
+
+            print(data["company_name"])
+            content.click()
+        except (ElementClickInterceptedException, StaleElementReferenceException) as e:
+            print("fail : ", e)
+            continue
+
+        try:
+            inquiry_btn = wait.until(
+                EC.element_to_be_clickable(
+                    (By.XPATH, '//*[@id="customModal"]/section/div/div/div[2]/div/div/aside/div/div[2]/button')
+                )
+            )
+            inquiry_btn.click()
+        except (ElementClickInterceptedException, StaleElementReferenceException) as e:
+            print("retrying inquiry button click after failure: ", e)
+            time.sleep(5)
+            inquiry_btn = wait.until(
+                EC.element_to_be_clickable(
+                    (By.XPATH, '//*[@id="customModal"]/section/div/div/div[2]/div/div/aside/div/div[2]/button')
+                )
+            )
+            inquiry_btn.click()
+
+        try:
+            company_name_element = driver.find_element(
+                By.XPATH, "/html/body/div[5]/div/section/div/div[2]/div/div[1]/div[1]/p"
+            )
+
+            company_name_text = company_name_element.text
+            data["company_name"] = company_name_text
+        except NoSuchElementException:
+            pass
+        driver.implicitly_wait(1)
+        try:
+            introduction_element = driver.find_element(
+                By.XPATH, "/html/body/div[5]/div/section/div/div[2]/div/div[1]/article/p"
+            )
+
+            introduction_text = introduction_element.text
+            data["introduction"] = introduction_text
+        except NoSuchElementException:
+            pass
+        driver.implicitly_wait(1)
+        try:
+            email_element = driver.find_element(
+                By.XPATH, "/html/body/div[5]/div/section/div/div[2]/div/div[1]/div[2]/div[1]/div[2]/p[2]"
+            )
+
+            email_text = email_element.text
+            data["email"] = email_text
+        except NoSuchElementException:
+            pass
+        driver.implicitly_wait(1)
+        try:
+            phone_element = driver.find_element(
+                By.XPATH, "/html/body/div[5]/div/section/div/div[2]/div/div[1]/div[2]/div[2]/div[2]/p[2]"
+            )
+
+            phone_text = phone_element.text
+            data["phone"] = phone_text
+        except NoSuchElementException:
+            pass
+        print("information")
+        driver.implicitly_wait(1)
+        try:
+            inquiry_close_btn = wait.until(
+                EC.element_to_be_clickable((By.XPATH, "/html/body/div[5]/div/section/div/div[1]/button"))
+            )
+            inquiry_close_btn.click()
+        except (ElementClickInterceptedException, StaleElementReferenceException) as e:
+            print("retrying inquiry close button click after failure: ", e)
+            time.sleep(5)
+            inquiry_close_btn = wait.until(
+                EC.element_to_be_clickable((By.XPATH, "/html/body/div[5]/div/section/div/div[1]/button"))
+            )
+            inquiry_close_btn.click()
+
+        try:
+            content_close_btn = wait.until(
+                EC.element_to_be_clickable(
+                    (By.XPATH, '//*[@id="customModal"]/section/div/div/div[2]/div/div/div/div/button/button')
+                )
+            )
+            content_close_btn.click()
+        except (ElementClickInterceptedException, StaleElementReferenceException) as e:
+            print("retrying content close button click after failure: ", e)
+            time.sleep(5)
+            content_close_btn = wait.until(
+                EC.element_to_be_clickable(
+                    (By.XPATH, '//*[@id="customModal"]/section/div/div/div[2]/div/div/div/div/button/button')
+                )
+            )
+            content_close_btn.click()
+
+        company_datas.append(data)
+        print(data["email"])
+
+    except NoSuchElementException as e:
+        print("fail : ", e)
+        break
+
+driver.quit()
+
+
+wb = Workbook()
+
+for sheet in wb.sheetnames:
+    wb.remove(wb[sheet])
+
+
+ws = wb.create_sheet(title="아임웹 전문가")
+ws.row_dimensions[1].height = 20
+ws.column_dimensions["A"].width = 15
+ws.column_dimensions["B"].width = 30
+ws.column_dimensions["C"].width = 40
+ws.column_dimensions["D"].width = 30
+ws.column_dimensions["E"].width = 100
+
+ws["A1"] = "No"
+ws["B1"] = "화사 이름"
+ws["C1"] = "이메일"
+ws["D1"] = "휴대폰"
+ws["E1"] = "소개글"
+
+
+title_cells = [ws["A1"], ws["B1"], ws["C1"], ws["D1"], ws["E1"]]
+
+
+row = 2
+
+for idx, data in enumerate(company_datas):
+    ws[f"A{row}"] = idx + 1
+    ws[f"B{row}"] = data["company_name"]
+    ws[f"C{row}"] = data["email"]
+    ws[f"D{row}"] = data["phone"]
+    ws[f"E{row}"] = data["introduction"]
+
+    row += 1
+
+
+wb.save("imweb_company_data.xlsx")
